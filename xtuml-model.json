@@ -1,0 +1,312 @@
+{
+  "system_name": "SistemAkademik",
+  "version": "1.0.0",
+  "domains": [
+    {
+      "name": "Manajemen Civitas Akademika",
+      "key_letter": "MCA",
+      "classes": [
+        {
+          "entity_type": "superclass",
+          "name": "Person",
+          "key_letter": "PRS",
+          "is_abstract": true,
+          "description": "Superclass untuk semua individu dalam sistem.",
+          "attributes": [
+            { "name": "ID", "data_type": "uuid", "attribute_type": "naming" },
+            { "name": "Nama", "data_type": "string", "attribute_type": "descriptive" },
+            { "name": "Email", "data_type": "string", "attribute_type": "descriptive" }
+          ]
+        },
+        {
+          "entity_type": "class",
+          "name": "Mahasiswa",
+          "inherits_from": "Person",
+          "key_letter": "MHS",
+          "description": "Merepresentasikan seorang mahasiswa yang terdaftar.",
+          "attributes": [
+            { "name": "NIM", "data_type": "string", "attribute_type": "descriptive" },
+            { "name": "Status", "data_type": "state", "attribute_type": "descriptive", "default_value": "Aktif" }
+          ],
+          "state_machine": {
+            "initial_state": "Aktif",
+            "states": [{ "name": "Aktif" }, { "name": "Cuti" }, { "name": "Lulus" }],
+            "transitions": [
+              {
+                "from_state": "Aktif",
+                "to_state": "Cuti",
+                "event": "ambilCuti",
+                "actions": [
+                  {
+                    "actionLanguage": {
+                      "operations": [
+                        {
+                          "name": "ambilCuti",
+                          "parameters": [
+                            {
+                              "name": "alasan",
+                              "type": "string"
+                            }
+                          ],
+                          "actions": [
+                            {
+                              "type": "update",
+                              "target": "this",
+                              "attribute": "Status",
+                              "value": "Cuti"
+                            },
+                            {
+                              "type": "log",
+                              "message": "Mahasiswa ${self.NIM} mengajukan cuti dengan alasan: ${alasan}."
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "from_state": "Cuti",
+                "to_state": "Aktif",
+                "event": "aktifkanKembali",
+                "actions": [
+                  {
+                    "actionLanguage": {
+                      "operations": [
+                        {
+                          "name": "aktifkanKembali",
+                          "parameters": [
+                            {
+                              "name": "tanggalAktif",
+                              "type": "date"
+                            }
+                          ],
+                          "actions": [
+                            {
+                              "type": "update",
+                              "target": "this",
+                              "attribute": "Status",
+                              "value": "Aktif"
+                            },
+                            {
+                              "type": "log",
+                              "message": "Mahasiswa ${self.NIM} aktif kembali per ${tanggalAktif}."
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "from_state": "Aktif",
+                "to_state": "Lulus",
+                "event": "dinyatakanLulus",
+                "actions": [
+                  {
+                    "actionLanguage": {
+                      "operations": [
+                        {
+                          "name": "dinyatakanLulus",
+                          "parameters": [
+                            {
+                              "name": "tanggalLulus",
+                              "type": "date"
+                            }
+                          ],
+                          "actions": [
+                            {
+                              "type": "update",
+                              "target": "this",
+                              "attribute": "Status",
+                              "value": "Lulus"
+                            },
+                            {
+                              "type": "log",
+                              "message": "Mahasiswa ${self.NIM} telah lulus pada ${tanggalLulus}."
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "entity_type": "class",
+          "name": "Dosen",
+          "inherits_from": "Person",
+          "key_letter": "DSN",
+          "description": "Merepresentasikan seorang dosen pengajar.",
+          "attributes": [
+            { "name": "NIP", "data_type": "string", "attribute_type": "descriptive" },
+            { "name": "Status", "data_type": "string", "attribute_type": "descriptive", "default_value": "Aktif Mengajar" }
+          ],
+          "state_machine": {
+            "initial_state": "Aktif Mengajar",
+            "states": [{ "name": "Aktif Mengajar" }, { "name": "Cuti Akademik" }, { "name": "Pensiun" }],
+            "transitions": [
+              {
+                "from_state": "Aktif Mengajar",
+                "to_state": "Cuti Akademik",
+                "event": "ajukanCuti",
+                "actions": [
+                  {
+                    "actionLanguage": {
+                      "operations": [
+                        {
+                          "name": "ajukanCuti",
+                          "parameters": [
+                            {
+                              "name": "durasiCuti",
+                              "type": "integer"
+                            }
+                          ],
+                          "actions": [
+                            {
+                              "type": "update",
+                              "target": "this",
+                              "attribute": "Status",
+                              "value": "Cuti Akademik"
+                            },
+                            {
+                              "type": "log",
+                              "message": "Dosen ${self.NIP} mengajukan cuti selama ${durasiCuti} bulan."
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "from_state": "Cuti Akademik",
+                "to_state": "Aktif Mengajar",
+                "event": "selesaiCuti",
+                "actions": [
+                  {
+                    "actionLanguage": {
+                      "operations": [
+                        {
+                          "name": "selesaiCuti",
+                          "parameters": [
+                            {
+                              "name": "tanggalKembali",
+                              "type": "date"
+                            }
+                          ],
+                          "actions": [
+                            {
+                              "type": "update",
+                              "target": "this",
+                              "attribute": "Status",
+                              "value": "Aktif Mengajar"
+                            },
+                            {
+                              "type": "log",
+                              "message": "Dosen ${self.NIP} kembali mengajar pada ${tanggalKembali}."
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "from_state": "Aktif Mengajar",
+                "to_state": "Pensiun",
+                "event": "memasukiPensiun",
+                "actions": [
+                  {
+                    "actionLanguage": {
+                      "operations": [
+                        {
+                          "name": "memasukiPensiun",
+                          "parameters": [
+                            {
+                              "name": "tanggalPensiun",
+                              "type": "date"
+                            }
+                          ],
+                          "actions": [
+                            {
+                              "type": "update",
+                              "target": "this",
+                              "attribute": "Status",
+                              "value": "Pensiun"
+                            },
+                            {
+                              "type": "log",
+                              "message": "Dosen ${self.NIP} pensiun per ${tanggalPensiun}."
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "entity_type": "passive_class",
+          "name": "MataKuliah",
+          "key_letter": "MK",
+          "description": "Kelas pasif yang merepresentasikan mata kuliah.",
+          "attributes": [
+            { "name": "KodeMK", "data_type": "string", "attribute_type": "naming" },
+            { "name": "NamaMK", "data_type": "string", "attribute_type": "descriptive" },
+            { "name": "SKS", "data_type": "integer", "attribute_type": "descriptive" }
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "relationship_id": "R1",
+          "description": "Mahasiswa mengambil Mata Kuliah dalam satu semester.",
+          "participants": [
+            { "class_name": "Mahasiswa", "role": "mengambil", "multiplicity": "0..*" },
+            { "class_name": "MataKuliah", "role": "diambil oleh", "multiplicity": "0..*" }
+          ],
+          "association_class": {
+            "name": "KRS",
+            "key_letter": "KRS",
+            "attributes": [
+              { "name": "KRS_ID", "data_type": "uuid", "attribute_type": "naming" },
+              { "name": "Mahasiswa_ID", "data_type": "uuid", "attribute_type": "referential" },
+              { "name": "MataKuliah_KodeMK", "data_type": "string", "attribute_type": "referential" },
+              { "name": "Semester", "data_type": "string", "attribute_type": "descriptive" },
+              { "name": "Nilai", "data_type": "string", "attribute_type": "descriptive" }
+            ]
+          }
+        },
+        {
+          "relationship_id": "R2",
+          "description": "Dosen ditugaskan untuk mengajar Mata Kuliah.",
+          "participants": [
+            { "class_name": "Dosen", "role": "mengajar", "multiplicity": "1..*" },
+            { "class_name": "MataKuliah", "role": "diajar oleh", "multiplicity": "0..*" }
+          ],
+          "association_class": {
+            "name": "JadwalAjar",
+            "key_letter": "JA",
+            "attributes": [
+              { "name": "Jadwal_ID", "data_type": "uuid", "attribute_type": "naming" },
+              { "name": "Dosen_ID", "data_type": "uuid", "attribute_type": "referential" },
+              { "name": "MataKuliah_KodeMK", "data_type": "string", "attribute_type": "referential" },
+              { "name": "TahunAkademik", "data_type": "string", "attribute_type": "descriptive" }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,8 +1,13 @@
 package kelompok.dua.maven.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class Action {
     private String type;
     private String message;
+
+    @JsonProperty("actionLanguage")
+    private ActionLanguage actionLanguage;
 
     // Constructors
     public Action() {
@@ -11,6 +16,10 @@ public class Action {
     public Action(String type, String message) {
         this.type = type;
         this.message = message;
+    }
+
+    public Action(ActionLanguage actionLanguage) {
+        this.actionLanguage = actionLanguage;
     }
 
     // Getters and Setters
@@ -30,8 +39,20 @@ public class Action {
         this.message = message;
     }
 
+    public ActionLanguage getActionLanguage() {
+        return actionLanguage;
+    }
+
+    public void setActionLanguage(ActionLanguage actionLanguage) {
+        this.actionLanguage = actionLanguage;
+    }
+
     @Override
     public String toString() {
-        return String.format("Action{type='%s', message='%s'}", type, message);
+        if (actionLanguage != null) {
+            return String.format("Action{actionLanguage=%s}", actionLanguage);
+        } else {
+            return String.format("Action{type='%s', message='%s'}", type, message);
+        }
     }
 }

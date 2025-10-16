@@ -1,6 +1,7 @@
 package kelompok.dua.maven.generator;
 
 import kelompok.dua.maven.model.*;
+import kelompok.dua.maven.util.HeaderGenerator;
 import kelompok.dua.maven.util.TypeScriptUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,7 @@ public class TypeScriptGenerator {
     private final Path outputDirectory;
     private final XtumlModel model;
     private final Map<String, ClassDefinition> classMap;
+    private ClassDefinition currentClass; // Track current class being processed
 
     public TypeScriptGenerator(XtumlModel model, Path outputDirectory) {
         this.model = model;
@@ -84,17 +86,17 @@ public class TypeScriptGenerator {
 
         StringBuilder content = new StringBuilder();
 
+        // Generate professional header
+        Domain currentDomain = getCurrentDomain(classDef);
+        content.append(HeaderGenerator.generateInterfaceHeader(classDef, currentDomain, model));
+        content.append("\n");
+
         // Import parent interface if has inheritance
         if (classDef.getInheritsFrom() != null) {
             String parentInterface = TypeScriptUtils.toInterfaceName(classDef.getInheritsFrom());
             String parentFileName = TypeScriptUtils.toFileName(parentInterface).replace(".ts", "");
             content.append("import { ").append(parentInterface).append(" } from './").append(parentFileName)
                     .append("';\n\n");
-        }
-
-        // Generate comment
-        if (classDef.getDescription() != null) {
-            content.append(TypeScriptUtils.generateComment(classDef.getDescription()));
         }
 
         // Generate interface declaration
@@ -132,12 +134,19 @@ public class TypeScriptGenerator {
      * Generate class implementation
      */
     private void generateClass(ClassDefinition classDef, Path domainDir) throws IOException {
+        this.currentClass = classDef; // Set current class context
+
         String className = TypeScriptUtils.toPascalCase(classDef.getName());
         String interfaceName = TypeScriptUtils.toInterfaceName(classDef.getName());
         String fileName = TypeScriptUtils.toFileName(className);
         Path filePath = domainDir.resolve(fileName);
 
         StringBuilder content = new StringBuilder();
+
+        // Generate professional header
+        Domain currentDomain = getCurrentDomain(classDef);
+        content.append(HeaderGenerator.generateClassHeader(classDef, currentDomain, model));
+        content.append("\n");
 
         // Import interface
         String interfaceFileName = TypeScriptUtils.toFileName(interfaceName);
@@ -152,11 +161,6 @@ public class TypeScriptGenerator {
         }
 
         content.append("\n");
-
-        // Generate comment
-        if (classDef.getDescription() != null) {
-            content.append(TypeScriptUtils.generateComment(classDef.getDescription()));
-        }
 
         // Generate class declaration
         if (Boolean.TRUE.equals(classDef.getIsAbstract())) {
@@ -362,43 +366,224 @@ public class TypeScriptGenerator {
         if (sm.getTransitions() != null) {
             content.append("\n  // State Machine Methods\n");
 
-            for (Transition transition : sm.getTransitions()) {
-                String methodName = TypeScriptUtils.toCamelCase(transition.getEvent());
-                content.append("  public ").append(methodName).append("(): boolean {\n");
-                content.append("    if (this.state === '").append(transition.getFromState()).append("') {\n");
-                content.append("      this.state = '").append(transition.getToState()).append("';\n");
+            Set<String> generatedMethods = new HashSet<>();
 
-                // Add actions if any
+            for (Transition transition : sm.getTransitions()) {
+                // Check if transition has actionLanguage operations
+                boolean hasActionLanguage = false;
                 if (transition.getActions() != null) {
                     for (Action action : transition.getActions()) {
-                        if ("log".equals(action.getType())) {
-                            // Replace template variables in message
-                            String message = action.getMessage();
-                            if (message != null) {
-                                // Replace ${self.NIM} with this.nim, etc.
-                                if (message.contains("${self.NIM}")) {
-                                    message = message.replace("${self.NIM}", "`+ this.nim +`");
+                        if (action.getActionLanguage() != null && action.getActionLanguage().getOperations() != null) {
+                            for (Operation operation : action.getActionLanguage().getOperations()) {
+                                String methodName = TypeScriptUtils.toCamelCase(operation.getName());
+                                if (!generatedMethods.contains(methodName)) {
+                                    generateOperationMethod(operation, transition, content);
+                                    generatedMethods.add(methodName);
+                                    hasActionLanguage = true;
                                 }
-                                // Wrap with template literal if contains template replacement
-                                if (message.contains("`+ this.")) {
-                                    message = "`" + message.replace("'", "\\'") + "`";
-                                } else {
-                                    message = "'" + TypeScriptUtils.escapeString(message) + "'";
-                                }
-                            } else {
-                                message = "''";
                             }
-                            content.append("      console.log(").append(message).append(");\n");
                         }
                     }
                 }
 
-                content.append("      return true;\n");
-                content.append("    }\n");
-                content.append("    return false;\n");
-                content.append("  }\n\n");
+                // Generate simple transition method only if no actionLanguage
+                if (!hasActionLanguage) {
+                    String methodName = TypeScriptUtils.toCamelCase(transition.getEvent());
+                    if (!generatedMethods.contains(methodName)) {
+                        generateSimpleTransitionMethod(transition, content);
+                        generatedMethods.add(methodName);
+                    }
+                }
             }
         }
+    }
+
+    /**
+     * Generate simple transition method (when no actionLanguage is present)
+     */
+    private void generateSimpleTransitionMethod(Transition transition, StringBuilder content) {
+        String methodName = TypeScriptUtils.toCamelCase(transition.getEvent());
+        content.append("  public ").append(methodName).append("(): boolean {\n");
+        content.append("    if (this.state === '").append(transition.getFromState()).append("') {\n");
+        content.append("      this.state = '").append(transition.getToState()).append("';\n");
+
+        // Add legacy actions if any
+        if (transition.getActions() != null) {
+            for (Action action : transition.getActions()) {
+                if (action.getActionLanguage() == null && "log".equals(action.getType())) {
+                    String message = action.getMessage();
+                    if (message != null) {
+                        // Simple template variable replacement for legacy format
+                        if (message.contains("${self.NIM}")) {
+                            message = message.replace("${self.NIM}", "`+ this.nim +`");
+                        }
+                        if (message.contains("${self.NIP}")) {
+                            message = message.replace("${self.NIP}", "`+ this.nip +`");
+                        }
+                        // Wrap with template literal if contains template replacement
+                        if (message.contains("`+ this.")) {
+                            message = "`" + message.replace("'", "\\'") + "`";
+                        } else {
+                            message = "'" + TypeScriptUtils.escapeString(message) + "'";
+                        }
+                    } else {
+                        message = "''";
+                    }
+                    content.append("      console.log(").append(message).append(");\n");
+                }
+            }
+        }
+
+        content.append("      return true;\n");
+        content.append("    }\n");
+        content.append("    return false;\n");
+        content.append("  }\n\n");
+    }
+
+    /**
+     * Generate method dari operation dalam action language
+     */
+    private void generateOperationMethod(Operation operation, Transition transition, StringBuilder content) {
+        String methodName = TypeScriptUtils.toCamelCase(operation.getName());
+
+        content.append("  public ").append(methodName).append("(");
+
+        // Generate parameters
+        if (operation.getParameters() != null) {
+            for (int i = 0; i < operation.getParameters().size(); i++) {
+                Parameter param = operation.getParameters().get(i);
+                if (i > 0)
+                    content.append(", ");
+                content.append(TypeScriptUtils.toCamelCase(param.getName()))
+                        .append(": ")
+                        .append(TypeScriptUtils.convertDataType(param.getType()));
+            }
+        }
+
+        content.append("): boolean {\n");
+        content.append("    if (this.state === '").append(transition.getFromState()).append("') {\n");
+
+        // Generate action steps
+        if (operation.getActions() != null) {
+            for (ActionStep actionStep : operation.getActions()) {
+                generateActionStep(actionStep, operation, content, transition);
+            }
+        }
+
+        content.append("      this.state = '").append(transition.getToState()).append("';\n");
+        content.append("      return true;\n");
+        content.append("    }\n");
+        content.append("    return false;\n");
+        content.append("  }\n\n");
+    }
+
+    /**
+     * Generate individual action step
+     */
+    private void generateActionStep(ActionStep actionStep, Operation operation, StringBuilder content,
+            Transition transition) {
+        switch (actionStep.getType()) {
+            case "update":
+                if ("this".equals(actionStep.getTarget()) && actionStep.getAttribute() != null
+                        && actionStep.getValue() != null) {
+                    String attrName = TypeScriptUtils.toCamelCase(actionStep.getAttribute());
+                    String value = actionStep.getValue();
+
+                    // Check if value needs quotes (for string types)
+                    if (!value.matches("\\d+") && !value.equals("true") && !value.equals("false")) {
+                        value = "'" + TypeScriptUtils.escapeString(value) + "'";
+                    }
+
+                    // Check if the attribute exists in the current class by looking for it in the
+                    // generated state machine
+                    boolean attributeExists = hasAttribute(actionStep.getAttribute());
+
+                    if (attributeExists) {
+                        content.append("      this.").append(attrName).append(" = ").append(value).append(";\n");
+                    } else {
+                        content.append("      // Update ").append(actionStep.getAttribute()).append(" to ")
+                                .append(actionStep.getValue()).append("\n");
+                        content.append("      // this.").append(attrName).append(" = ").append(value).append(";\n");
+                    }
+                }
+                break;
+
+            case "log":
+                String message = actionStep.getMessage();
+                if (message != null) {
+                    // Replace template variables
+                    message = replaceTemplateVariables(message, operation);
+                    content.append("      console.log(").append(message).append(");\n");
+                }
+                break;
+
+            default:
+                // Handle other action types if needed
+                content.append("      // Action type '").append(actionStep.getType()).append("' not implemented\n");
+                break;
+        }
+    }
+
+    /**
+     * Check if attribute exists in current class definition or its parent
+     */
+    private boolean hasAttribute(String attributeName) {
+        if (currentClass == null)
+            return false;
+
+        // Check current class attributes
+        if (currentClass.getAttributes() != null) {
+            for (Attribute attr : currentClass.getAttributes()) {
+                if (attributeName.equals(attr.getName())) {
+                    return true;
+                }
+            }
+        }
+
+        // Check parent class attributes
+        if (currentClass.getInheritsFrom() != null) {
+            ClassDefinition parentClass = classMap.get(currentClass.getInheritsFrom());
+            if (parentClass != null && parentClass.getAttributes() != null) {
+                for (Attribute attr : parentClass.getAttributes()) {
+                    if (attributeName.equals(attr.getName())) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Replace template variables dalam message
+     */
+    private String replaceTemplateVariables(String message, Operation operation) {
+        if (message == null)
+            return "''";
+
+        String result = message;
+
+        // Replace ${self.NIM} dengan ${this.nim}, ${self.NIP} dengan ${this.nip}, etc.
+        result = result.replace("${self.NIM}", "${this.nim}");
+        result = result.replace("${self.NIP}", "${this.nip}");
+
+        // Replace parameter variables ${paramName} dengan ${paramName}
+        if (operation.getParameters() != null) {
+            for (Parameter param : operation.getParameters()) {
+                String paramName = TypeScriptUtils.toCamelCase(param.getName());
+                result = result.replace("${" + param.getName() + "}", "${" + paramName + "}");
+            }
+        }
+
+        // Convert to template literal
+        if (result.contains("${")) {
+            result = "`" + result.replace("\\", "\\\\").replace("`", "\\`") + "`";
+        } else {
+            result = "'" + TypeScriptUtils.escapeString(result) + "'";
+        }
+
+        return result;
     }
 
     /**
@@ -428,7 +613,9 @@ public class TypeScriptGenerator {
         Path indexPath = domainDir.resolve("index.ts");
         StringBuilder content = new StringBuilder();
 
-        content.append("// Auto-generated index file for domain: ").append(domain.getName()).append("\n\n");
+        // Generate professional header
+        content.append(HeaderGenerator.generateDomainIndexHeader(domain, model));
+        content.append("\n");
 
         // Export all interfaces and classes
         for (ClassDefinition classDef : domain.getClasses()) {
@@ -472,8 +659,9 @@ public class TypeScriptGenerator {
         Path indexPath = outputDirectory.resolve("index.ts");
         StringBuilder content = new StringBuilder();
 
-        content.append("// Auto-generated index file for system: ").append(model.getSystemName()).append("\n");
-        content.append("// Version: ").append(model.getVersion()).append("\n\n");
+        // Generate professional header
+        content.append(HeaderGenerator.generateMainIndexHeader(model));
+        content.append("\n");
 
         // Export all domains
         for (Domain domain : model.getDomains()) {
@@ -501,5 +689,21 @@ public class TypeScriptGenerator {
         }
 
         return map;
+    }
+
+    /**
+     * Get domain yang berisi class tertentu
+     */
+    private Domain getCurrentDomain(ClassDefinition classDef) {
+        for (Domain domain : model.getDomains()) {
+            if (domain.getClasses() != null) {
+                for (ClassDefinition cd : domain.getClasses()) {
+                    if (cd.getName().equals(classDef.getName())) {
+                        return domain;
+                    }
+                }
+            }
+        }
+        return model.getDomains().get(0); // fallback ke domain pertama
     }
 }

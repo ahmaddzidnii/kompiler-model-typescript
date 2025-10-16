@@ -4,6 +4,7 @@ import kelompok.dua.maven.generator.TypeScriptGenerator;
 import kelompok.dua.maven.model.XtumlModel;
 import kelompok.dua.maven.parser.XtumlModelParser;
 import kelompok.dua.maven.parser.XtumlParseException;
+import kelompok.dua.maven.util.TerminalUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
@@ -15,12 +16,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.Callable;
 
 /**
  * CLI Application untuk mengkompilasi model xTUML dari JSON ke TypeScript
  */
-@Command(name = "xtuml-ts-compiler", description = "Kompiler untuk mengkonversi model xTUML dari JSON ke TypeScript", version = "1.0.0", mixinStandardHelpOptions = true)
+@Command(name = "xtuml-ts-compiler", description = "Kompiler untuk mengkonversi model xTUML dari JSON ke TypeScript", version = "1.1.0", mixinStandardHelpOptions = true)
 public class XtumlCompilerCli implements Callable<Integer> {
     private static final Logger logger = LoggerFactory.getLogger(XtumlCompilerCli.class);
 
@@ -40,6 +43,9 @@ public class XtumlCompilerCli implements Callable<Integer> {
     @Option(names = { "--clean" }, description = "Bersihkan direktori output sebelum generate")
     private boolean clean;
 
+    @Option(names = { "--no-color" }, description = "Disable colored output")
+    private boolean noColor;
+
     public static void main(String[] args) {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "INFO");
 
@@ -49,85 +55,111 @@ public class XtumlCompilerCli implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
+        Instant startTime = Instant.now();
+
         try {
+            // Initialize terminal colors
+            if (!noColor) {
+                TerminalUtils.enableColors();
+            }
+
+            // Print beautiful banner
+            TerminalUtils.printBanner("xTUML TypeScript Compiler", "v1.1.0");
+
             // Setup logging level
             if (verbose) {
                 System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "DEBUG");
+                TerminalUtils.printInfo("Verbose mode enabled");
             }
 
-            logger.info("xTUML TypeScript Compiler v1.0.0");
-            logger.info("Input: {}", inputFile);
-            logger.info("Output: {}", outputDir);
+            TerminalUtils.printInfo("📥 Input: " + inputFile);
+            TerminalUtils.printInfo("📤 Output: " + outputDir);
+            TerminalUtils.printSeparator();
 
             // Validasi input file
+            TerminalUtils.printInfo("🔍 Validating input file...");
             Path inputPath = Paths.get(inputFile);
             if (!Files.exists(inputPath)) {
-                logger.error("File input tidak ditemukan: {}", inputFile);
+                TerminalUtils.printError("File input tidak ditemukan: " + inputFile);
                 return 1;
             }
 
             if (!Files.isRegularFile(inputPath)) {
-                logger.error("Path input bukan file: {}", inputFile);
+                TerminalUtils.printError("Path input bukan file: " + inputFile);
                 return 1;
             }
+            TerminalUtils.printSuccess("✓ Input file validated");
 
             // Setup output directory
+            TerminalUtils.printInfo("📁 Setting up output directory...");
             Path outputPath = Paths.get(outputDir);
             if (Files.exists(outputPath)) {
                 if (!Files.isDirectory(outputPath)) {
-                    logger.error("Path output bukan direktori: {}", outputDir);
+                    TerminalUtils.printError("Path output bukan direktori: " + outputDir);
                     return 1;
                 }
 
                 if (!force && hasFiles(outputPath)) {
-                    logger.error("Direktori output tidak kosong. Gunakan --force untuk overwrite: {}", outputDir);
+                    TerminalUtils
+                            .printError("Direktori output tidak kosong. Gunakan --force untuk overwrite: " + outputDir);
                     return 1;
                 }
 
                 if (clean) {
-                    logger.info("Membersihkan direktori output...");
+                    TerminalUtils.printWarning("🧹 Cleaning output directory...");
                     deleteDirectoryContents(outputPath);
+                    TerminalUtils.printSuccess("✓ Output directory cleaned");
                 }
             }
+            TerminalUtils.printSuccess("✓ Output directory ready");
 
             // Parse model
-            logger.info("Parsing model xTUML...");
+            TerminalUtils.printInfo("📋 Parsing xTUML model...");
+            TerminalUtils.showProgress("Parsing", 0);
+
             XtumlModelParser parser = new XtumlModelParser();
             XtumlModel model = parser.parseFromFile(inputPath);
 
-            logger.info("Model berhasil diparsing: {} v{}", model.getSystemName(), model.getVersion());
-            logger.info("Jumlah domain: {}", model.getDomains().size());
+            TerminalUtils.showProgress("Parsing", 100);
+            TerminalUtils.printSuccess("✓ Model successfully parsed");
+            TerminalUtils.printInfo("  System: " + model.getSystemName() + " v" + model.getVersion());
+            TerminalUtils.printInfo("  Domains: " + model.getDomains().size());
 
             // Generate TypeScript
-            logger.info("Generating TypeScript files...");
+            TerminalUtils.printSeparator();
+            TerminalUtils.printInfo("⚙️ Generating TypeScript files...");
+
             TypeScriptGenerator generator = new TypeScriptGenerator(model, outputPath);
             generator.generateAll();
 
-            logger.info("Kompilasi selesai! File TypeScript tersimpan di: {}", outputPath.toAbsolutePath());
+            TerminalUtils.printSuccess("✓ TypeScript generation completed!");
 
-            // Print summary
-            printSummary(model, outputPath);
+            // Calculate execution time
+            Duration duration = Duration.between(startTime, Instant.now());
+
+            // Print beautiful summary
+            printBeautifulSummary(model, outputPath, duration);
 
             return 0;
 
         } catch (XtumlParseException e) {
-            logger.error("Error parsing model: {}", e.getMessage());
+            TerminalUtils.printError("❌ Parse Error: " + e.getMessage());
             if (verbose && e.getCause() != null) {
-                logger.error("Cause: ", e.getCause());
+                TerminalUtils.printError("Cause: " + e.getCause().getMessage());
             }
             return 2;
 
         } catch (IOException e) {
-            logger.error("Error I/O: {}", e.getMessage());
+            TerminalUtils.printError("❌ I/O Error: " + e.getMessage());
             if (verbose) {
-                logger.error("Details: ", e);
+                TerminalUtils.printError("Details: " + e.toString());
             }
             return 3;
 
         } catch (Exception e) {
-            logger.error("Error tidak terduga: {}", e.getMessage());
+            TerminalUtils.printError("❌ Unexpected Error: " + e.getMessage());
             if (verbose) {
-                logger.error("Details: ", e);
+                TerminalUtils.printError("Details: " + e.toString());
             }
             return 4;
         }
@@ -157,27 +189,35 @@ public class XtumlCompilerCli implements Callable<Integer> {
     }
 
     /**
-     * Print summary hasil kompilasi
+     * Print beautiful summary hasil kompilasi
      */
-    private void printSummary(XtumlModel model, Path outputPath) throws IOException {
-        logger.info("=== SUMMARY ===");
-        logger.info("System: {} v{}", model.getSystemName(), model.getVersion());
+    private void printBeautifulSummary(XtumlModel model, Path outputPath, Duration duration) throws IOException {
+        TerminalUtils.printSeparator();
+        TerminalUtils.printHeader("COMPILATION SUMMARY");
+
+        // System info
+        TerminalUtils.printInfo("🎯 System: " + model.getSystemName() + " v" + model.getVersion());
 
         int totalClasses = 0;
         int totalRelationships = 0;
+        int totalStateMachines = 0;
 
         for (var domain : model.getDomains()) {
             int classCount = domain.getClasses() != null ? domain.getClasses().size() : 0;
             int relCount = domain.getRelationships() != null ? domain.getRelationships().size() : 0;
+            int smCount = domain.getClasses() != null
+                    ? (int) domain.getClasses().stream().filter(c -> c.getStateMachine() != null).count()
+                    : 0;
 
             totalClasses += classCount;
             totalRelationships += relCount;
+            totalStateMachines += smCount;
 
-            logger.info("Domain '{}': {} classes, {} relationships",
-                    domain.getName(), classCount, relCount);
+            TerminalUtils.printInfo("📂 Domain '" + domain.getName() + "': " +
+                    classCount + " classes, " +
+                    relCount + " relationships, " +
+                    smCount + " state machines");
         }
-
-        logger.info("Total: {} classes, {} relationships", totalClasses, totalRelationships);
 
         // Count generated files
         long fileCount = Files.walk(outputPath)
@@ -185,7 +225,30 @@ public class XtumlCompilerCli implements Callable<Integer> {
                 .filter(path -> path.toString().endsWith(".ts"))
                 .count();
 
-        logger.info("Generated {} TypeScript files in: {}", fileCount, outputPath.toAbsolutePath());
-        logger.info("===============");
+        TerminalUtils.printSeparator();
+        TerminalUtils.printSuccess("✅ GENERATION COMPLETE");
+        TerminalUtils.printInfo("📊 Total Statistics:");
+        TerminalUtils.printInfo("   • Domains: " + model.getDomains().size());
+        TerminalUtils.printInfo("   • Classes: " + totalClasses);
+        TerminalUtils.printInfo("   • Relationships: " + totalRelationships);
+        TerminalUtils.printInfo("   • State Machines: " + totalStateMachines);
+        TerminalUtils.printInfo("   • Generated Files: " + fileCount);
+        TerminalUtils.printInfo("⏱️ Execution Time: " + formatDuration(duration));
+        TerminalUtils.printInfo("📍 Output Location: " + outputPath.toAbsolutePath());
+
+        TerminalUtils.printSeparator();
+        TerminalUtils.printSuccess("🎉 Ready to use! Import your TypeScript modules from the output directory.");
+    }
+
+    /**
+     * Format duration menjadi string yang readable
+     */
+    private String formatDuration(Duration duration) {
+        long millis = duration.toMillis();
+        if (millis < 1000) {
+            return millis + "ms";
+        } else {
+            return String.format("%.2fs", millis / 1000.0);
+        }
     }
 }
