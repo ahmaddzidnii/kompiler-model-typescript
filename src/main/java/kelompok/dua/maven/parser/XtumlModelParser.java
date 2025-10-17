@@ -6,7 +6,6 @@ import kelompok.dua.maven.model.XtumlModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

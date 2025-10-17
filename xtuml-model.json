@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "domains": [
     {
-      "name": "Manajemen Civitas Akademika",
+      "name": "Manajemen Akademik",
       "key_letter": "MCA",
       "classes": [
         {
