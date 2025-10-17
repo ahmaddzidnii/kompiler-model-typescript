@@ -59,9 +59,8 @@ public class TypeScriptGenerator {
         Path domainDir = outputDirectory.resolve(TypeScriptUtils.toCamelCase(domain.getName()));
         Files.createDirectories(domainDir);
 
-        // Generate interfaces untuk semua classes
+        // Generate classes dengan embedded interfaces
         for (ClassDefinition classDef : domain.getClasses()) {
-            generateInterface(classDef, domainDir);
             generateClass(classDef, domainDir);
         }
 
@@ -77,61 +76,7 @@ public class TypeScriptGenerator {
     }
 
     /**
-     * Generate interface untuk class
-     */
-    private void generateInterface(ClassDefinition classDef, Path domainDir) throws IOException {
-        String interfaceName = TypeScriptUtils.toInterfaceName(classDef.getName());
-        String fileName = TypeScriptUtils.toFileName(interfaceName);
-        Path filePath = domainDir.resolve(fileName);
-
-        StringBuilder content = new StringBuilder();
-
-        // Generate professional header
-        Domain currentDomain = getCurrentDomain(classDef);
-        content.append(HeaderGenerator.generateInterfaceHeader(classDef, currentDomain, model));
-        content.append("\n");
-
-        // Import parent interface if has inheritance
-        if (classDef.getInheritsFrom() != null) {
-            String parentInterface = TypeScriptUtils.toInterfaceName(classDef.getInheritsFrom());
-            String parentFileName = TypeScriptUtils.toFileName(parentInterface).replace(".ts", "");
-            content.append("import { ").append(parentInterface).append(" } from './").append(parentFileName)
-                    .append("';\n\n");
-        }
-
-        // Generate interface declaration
-        content.append("export interface ").append(interfaceName);
-
-        // Handle inheritance
-        if (classDef.getInheritsFrom() != null) {
-            String parentInterface = TypeScriptUtils.toInterfaceName(classDef.getInheritsFrom());
-            content.append(" extends ").append(parentInterface);
-        }
-
-        content.append(" {\n");
-
-        // Generate properties
-        if (classDef.getAttributes() != null) {
-            for (Attribute attr : classDef.getAttributes()) {
-                generateInterfaceProperty(attr, content);
-            }
-        }
-
-        // Add state property if has state machine
-        if (classDef.getStateMachine() != null) {
-            generateStateProperty(classDef, content);
-        }
-
-        content.append("}\n");
-
-        // Write to file
-        Files.writeString(filePath, content.toString(), StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING);
-        logger.debug("Generated interface: {}", filePath);
-    }
-
-    /**
-     * Generate class implementation
+     * Generate class implementation with embedded interface
      */
     private void generateClass(ClassDefinition classDef, Path domainDir) throws IOException {
         this.currentClass = classDef; // Set current class context
@@ -148,19 +93,40 @@ public class TypeScriptGenerator {
         content.append(HeaderGenerator.generateClassHeader(classDef, currentDomain, model));
         content.append("\n");
 
-        // Import interface
-        String interfaceFileName = TypeScriptUtils.toFileName(interfaceName);
-        content.append("import { ").append(interfaceName).append(" } from './")
-                .append(interfaceFileName.replace(".ts", "")).append("';\n");
-
-        // Import parent class if has inheritance
+        // Import parent interface and class if has inheritance
         if (classDef.getInheritsFrom() != null) {
             String parentClass = TypeScriptUtils.toPascalCase(classDef.getInheritsFrom());
+            String parentInterface = TypeScriptUtils.toInterfaceName(classDef.getInheritsFrom());
             String parentFileName = TypeScriptUtils.toFileName(parentClass).replace(".ts", "");
-            content.append("import { ").append(parentClass).append(" } from './").append(parentFileName).append("';\n");
+            content.append("import { ").append(parentInterface).append(", ").append(parentClass).append(" } from './").append(parentFileName).append("';\n");
         }
 
         content.append("\n");
+
+        // Generate interface first
+        content.append("export interface ").append(interfaceName);
+
+        // Handle inheritance for interface
+        if (classDef.getInheritsFrom() != null) {
+            String parentInterface = TypeScriptUtils.toInterfaceName(classDef.getInheritsFrom());
+            content.append(" extends ").append(parentInterface);
+        }
+
+        content.append(" {\n");
+
+        // Generate interface properties
+        if (classDef.getAttributes() != null) {
+            for (Attribute attr : classDef.getAttributes()) {
+                generateInterfaceProperty(attr, content);
+            }
+        }
+
+        // Add state property if has state machine
+        if (classDef.getStateMachine() != null) {
+            generateStateProperty(classDef, content);
+        }
+
+        content.append("}\n\n");
 
         // Generate class declaration
         if (Boolean.TRUE.equals(classDef.getIsAbstract())) {
@@ -171,7 +137,7 @@ public class TypeScriptGenerator {
 
         content.append(className);
 
-        // Handle inheritance
+        // Handle inheritance for class
         if (classDef.getInheritsFrom() != null) {
             String parentClass = TypeScriptUtils.toPascalCase(classDef.getInheritsFrom());
             content.append(" extends ").append(parentClass);
@@ -653,7 +619,6 @@ public class TypeScriptGenerator {
             classDef.setAttributes(assocClass.getAttributes());
             classDef.setDescription("Association class for relationship " + relationship.getRelationshipId());
 
-            generateInterface(classDef, domainDir);
             generateClass(classDef, domainDir);
         }
     }
@@ -669,16 +634,13 @@ public class TypeScriptGenerator {
         content.append(HeaderGenerator.generateDomainIndexHeader(domain, model));
         content.append("\n");
 
-        // Export all interfaces and classes
+        // Export all interfaces and classes from the same files
         for (ClassDefinition classDef : domain.getClasses()) {
             String interfaceName = TypeScriptUtils.toInterfaceName(classDef.getName());
             String className = TypeScriptUtils.toPascalCase(classDef.getName());
-            String interfaceFile = TypeScriptUtils.toFileName(interfaceName).replace(".ts", "");
             String classFile = TypeScriptUtils.toFileName(className).replace(".ts", "");
 
-            content.append("export { ").append(interfaceName).append(" } from './").append(interfaceFile)
-                    .append("';\n");
-            content.append("export { ").append(className).append(" } from './").append(classFile).append("';\n");
+            content.append("export { ").append(interfaceName).append(", ").append(className).append(" } from './").append(classFile).append("';\n");
         }
 
         // Export association classes
@@ -688,12 +650,9 @@ public class TypeScriptGenerator {
                     String className = TypeScriptUtils.toPascalCase(relationship.getAssociationClass().getName());
                     String interfaceName = TypeScriptUtils
                             .toInterfaceName(relationship.getAssociationClass().getName());
-                    String interfaceFile = TypeScriptUtils.toFileName(interfaceName).replace(".ts", "");
                     String classFile = TypeScriptUtils.toFileName(className).replace(".ts", "");
 
-                    content.append("export { ").append(interfaceName).append(" } from './").append(interfaceFile)
-                            .append("';\n");
-                    content.append("export { ").append(className).append(" } from './").append(classFile)
+                    content.append("export { ").append(interfaceName).append(", ").append(className).append(" } from './").append(classFile)
                             .append("';\n");
                 }
             }
