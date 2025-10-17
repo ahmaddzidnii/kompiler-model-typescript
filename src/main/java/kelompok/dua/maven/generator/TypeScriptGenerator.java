@@ -98,7 +98,8 @@ public class TypeScriptGenerator {
             String parentClass = TypeScriptUtils.toPascalCase(classDef.getInheritsFrom());
             String parentInterface = TypeScriptUtils.toInterfaceName(classDef.getInheritsFrom());
             String parentFileName = TypeScriptUtils.toFileName(parentClass).replace(".ts", "");
-            content.append("import { ").append(parentInterface).append(", ").append(parentClass).append(" } from './").append(parentFileName).append("';\n");
+            content.append("import { ").append(parentInterface).append(", ").append(parentClass).append(" } from './")
+                    .append(parentFileName).append("';\n");
         }
 
         content.append("\n");
@@ -640,7 +641,8 @@ public class TypeScriptGenerator {
             String className = TypeScriptUtils.toPascalCase(classDef.getName());
             String classFile = TypeScriptUtils.toFileName(className).replace(".ts", "");
 
-            content.append("export { ").append(interfaceName).append(", ").append(className).append(" } from './").append(classFile).append("';\n");
+            content.append("export { ").append(interfaceName).append(", ").append(className).append(" } from './")
+                    .append(classFile).append("';\n");
         }
 
         // Export association classes
@@ -652,7 +654,8 @@ public class TypeScriptGenerator {
                             .toInterfaceName(relationship.getAssociationClass().getName());
                     String classFile = TypeScriptUtils.toFileName(className).replace(".ts", "");
 
-                    content.append("export { ").append(interfaceName).append(", ").append(className).append(" } from './").append(classFile)
+                    content.append("export { ").append(interfaceName).append(", ").append(className)
+                            .append(" } from './").append(classFile)
                             .append("';\n");
                 }
             }
