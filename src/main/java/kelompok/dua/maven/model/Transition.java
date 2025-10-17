@@ -13,6 +13,9 @@ public class Transition {
     private String event;
     private List<Action> actions;
 
+    @JsonProperty("actionLanguage")
+    private ActionLanguage actionLanguage;
+
     // Constructors
     public Transition() {
     }
@@ -57,9 +60,17 @@ public class Transition {
         this.actions = actions;
     }
 
+    public ActionLanguage getActionLanguage() {
+        return actionLanguage;
+    }
+
+    public void setActionLanguage(ActionLanguage actionLanguage) {
+        this.actionLanguage = actionLanguage;
+    }
+
     @Override
     public String toString() {
-        return String.format("Transition{fromState='%s', toState='%s', event='%s', actions=%d}",
-                fromState, toState, event, actions != null ? actions.size() : 0);
+        return String.format("Transition{fromState='%s', toState='%s', event='%s', actions=%d, actionLanguage=%s}",
+                fromState, toState, event, actions != null ? actions.size() : 0, actionLanguage);
     }
 }

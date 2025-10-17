@@ -1,5 +1,5 @@
 {
-  "system_name": "SistemAkademik",
+  "system_name": "Sistem Informasi Akademik",
   "version": "1.0.0",
   "domains": [
     {
@@ -36,103 +36,76 @@
                 "from_state": "Aktif",
                 "to_state": "Cuti",
                 "event": "ambilCuti",
-                "actions": [
-                  {
-                    "actionLanguage": {
-                      "operations": [
+                "actionLanguage": {
+                  "operations": [
+                    {
+                      "name": "ambilCuti",
+                      "parameters": [{ "name": "alasan", "type": "string" }],
+                      "steps": [
                         {
-                          "name": "ambilCuti",
-                          "parameters": [
-                            {
-                              "name": "alasan",
-                              "type": "string"
-                            }
-                          ],
-                          "actions": [
-                            {
-                              "type": "update",
-                              "target": "this",
-                              "attribute": "Status",
-                              "value": "Cuti"
-                            },
-                            {
-                              "type": "log",
-                              "message": "Mahasiswa ${self.NIM} mengajukan cuti dengan alasan: ${alasan}."
-                            }
-                          ]
+                          "type": "update",
+                          "target": "this",
+                          "attribute": "Status",
+                          "value": "Cuti"
+                        },
+                        {
+                          "type": "log",
+                          "message": "Mahasiswa ${self.NIM} mengajukan cuti dengan alasan: ${alasan}."
                         }
                       ]
                     }
-                  }
-                ]
+                  ]
+                }
               },
               {
                 "from_state": "Cuti",
                 "to_state": "Aktif",
                 "event": "aktifkanKembali",
-                "actions": [
-                  {
-                    "actionLanguage": {
-                      "operations": [
+                "actionLanguage": {
+                  "operations": [
+                    {
+                      "name": "aktifkanKembali",
+                      "parameters": [{ "name": "tanggalAktif", "type": "date" }],
+                      "steps": [
                         {
-                          "name": "aktifkanKembali",
-                          "parameters": [
-                            {
-                              "name": "tanggalAktif",
-                              "type": "date"
-                            }
-                          ],
-                          "actions": [
-                            {
-                              "type": "update",
-                              "target": "this",
-                              "attribute": "Status",
-                              "value": "Aktif"
-                            },
-                            {
-                              "type": "log",
-                              "message": "Mahasiswa ${self.NIM} aktif kembali per ${tanggalAktif}."
-                            }
-                          ]
+                          "type": "update",
+                          "target": "this",
+                          "attribute": "Status",
+                          "value": "Aktif"
+                        },
+                        {
+                          "type": "log",
+                          "message": "Mahasiswa ${self.NIM} aktif kembali per ${tanggalAktif}."
                         }
                       ]
                     }
-                  }
-                ]
+                  ]
+                }
               },
               {
                 "from_state": "Aktif",
                 "to_state": "Lulus",
                 "event": "dinyatakanLulus",
-                "actions": [
-                  {
-                    "actionLanguage": {
-                      "operations": [
+                "actionLanguage": {
+                  "operations": [
+                    {
+                      "name": "dinyatakanLulus",
+                      "parameters": [{ "name": "tanggalLulus", "type": "date" }],
+                      "steps": [
                         {
-                          "name": "dinyatakanLulus",
-                          "parameters": [
-                            {
-                              "name": "tanggalLulus",
-                              "type": "date"
-                            }
-                          ],
-                          "actions": [
-                            {
-                              "type": "update",
-                              "target": "this",
-                              "attribute": "Status",
-                              "value": "Lulus"
-                            },
-                            {
-                              "type": "log",
-                              "message": "Mahasiswa ${self.NIM} telah lulus pada ${tanggalLulus}."
-                            }
-                          ]
+                          "type": "update",
+                          "target": "this",
+                          "attribute": "Status",
+                          "value": "Lulus"
+                        },
+                        {
+                          "type": "log",
+                          "message": "Mahasiswa ${self.NIM} telah lulus pada ${tanggalLulus}."
                         }
                       ]
                     }
-                  }
-                ]
+                  ]
+                }
               }
             ]
           }
@@ -155,103 +128,76 @@
                 "from_state": "Aktif Mengajar",
                 "to_state": "Cuti Akademik",
                 "event": "ajukanCuti",
-                "actions": [
-                  {
-                    "actionLanguage": {
-                      "operations": [
+                "actionLanguage": {
+                  "operations": [
+                    {
+                      "name": "ajukanCuti",
+                      "parameters": [{ "name": "durasiCuti", "type": "integer" }],
+                      "steps": [
                         {
-                          "name": "ajukanCuti",
-                          "parameters": [
-                            {
-                              "name": "durasiCuti",
-                              "type": "integer"
-                            }
-                          ],
-                          "actions": [
-                            {
-                              "type": "update",
-                              "target": "this",
-                              "attribute": "Status",
-                              "value": "Cuti Akademik"
-                            },
-                            {
-                              "type": "log",
-                              "message": "Dosen ${self.NIP} mengajukan cuti selama ${durasiCuti} bulan."
-                            }
-                          ]
+                          "type": "update",
+                          "target": "this",
+                          "attribute": "Status",
+                          "value": "Cuti Akademik"
+                        },
+                        {
+                          "type": "log",
+                          "message": "Dosen ${self.NIP} mengajukan cuti selama ${durasiCuti} bulan."
                         }
                       ]
                     }
-                  }
-                ]
+                  ]
+                }
               },
               {
                 "from_state": "Cuti Akademik",
                 "to_state": "Aktif Mengajar",
                 "event": "selesaiCuti",
-                "actions": [
-                  {
-                    "actionLanguage": {
-                      "operations": [
+                "actionLanguage": {
+                  "operations": [
+                    {
+                      "name": "selesaiCuti",
+                      "parameters": [{ "name": "tanggalKembali", "type": "date" }],
+                      "steps": [
                         {
-                          "name": "selesaiCuti",
-                          "parameters": [
-                            {
-                              "name": "tanggalKembali",
-                              "type": "date"
-                            }
-                          ],
-                          "actions": [
-                            {
-                              "type": "update",
-                              "target": "this",
-                              "attribute": "Status",
-                              "value": "Aktif Mengajar"
-                            },
-                            {
-                              "type": "log",
-                              "message": "Dosen ${self.NIP} kembali mengajar pada ${tanggalKembali}."
-                            }
-                          ]
+                          "type": "update",
+                          "target": "this",
+                          "attribute": "Status",
+                          "value": "Aktif Mengajar"
+                        },
+                        {
+                          "type": "log",
+                          "message": "Dosen ${self.NIP} kembali mengajar pada ${tanggalKembali}."
                         }
                       ]
                     }
-                  }
-                ]
+                  ]
+                }
               },
               {
                 "from_state": "Aktif Mengajar",
                 "to_state": "Pensiun",
                 "event": "memasukiPensiun",
-                "actions": [
-                  {
-                    "actionLanguage": {
-                      "operations": [
+                "actionLanguage": {
+                  "operations": [
+                    {
+                      "name": "memasukiPensiun",
+                      "parameters": [{ "name": "tanggalPensiun", "type": "date" }],
+                      "steps": [
                         {
-                          "name": "memasukiPensiun",
-                          "parameters": [
-                            {
-                              "name": "tanggalPensiun",
-                              "type": "date"
-                            }
-                          ],
-                          "actions": [
-                            {
-                              "type": "update",
-                              "target": "this",
-                              "attribute": "Status",
-                              "value": "Pensiun"
-                            },
-                            {
-                              "type": "log",
-                              "message": "Dosen ${self.NIP} pensiun per ${tanggalPensiun}."
-                            }
-                          ]
+                          "type": "update",
+                          "target": "this",
+                          "attribute": "Status",
+                          "value": "Pensiun"
+                        },
+                        {
+                          "type": "log",
+                          "message": "Dosen ${self.NIP} pensiun per ${tanggalPensiun}."
                         }
                       ]
                     }
-                  }
-                ]
+                  ]
+                }
               }
             ]
           }

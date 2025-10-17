@@ -369,9 +369,21 @@ public class TypeScriptGenerator {
             Set<String> generatedMethods = new HashSet<>();
 
             for (Transition transition : sm.getTransitions()) {
-                // Check if transition has actionLanguage operations
+                // Check if transition has actionLanguage operations (new format)
                 boolean hasActionLanguage = false;
-                if (transition.getActions() != null) {
+                if (transition.getActionLanguage() != null && transition.getActionLanguage().getOperations() != null) {
+                    for (Operation operation : transition.getActionLanguage().getOperations()) {
+                        String methodName = TypeScriptUtils.toCamelCase(operation.getName());
+                        if (!generatedMethods.contains(methodName)) {
+                            generateOperationMethod(operation, transition, content);
+                            generatedMethods.add(methodName);
+                            hasActionLanguage = true;
+                        }
+                    }
+                }
+
+                // Check old format for backward compatibility
+                if (!hasActionLanguage && transition.getActions() != null) {
                     for (Action action : transition.getActions()) {
                         if (action.getActionLanguage() != null && action.getActionLanguage().getOperations() != null) {
                             for (Operation operation : action.getActionLanguage().getOperations()) {
@@ -463,14 +475,44 @@ public class TypeScriptGenerator {
         content.append("): boolean {\n");
         content.append("    if (this.state === '").append(transition.getFromState()).append("') {\n");
 
+        // Check if any action step updates the state machine
+        boolean stateUpdated = false;
+        List<ActionStep> actionSteps = null;
+
+        // Get action steps (new format - steps)
+        if (operation.getSteps() != null) {
+            actionSteps = operation.getSteps();
+        }
+        // Backward compatibility - old format (actions)
+        else if (operation.getActions() != null) {
+            actionSteps = operation.getActions();
+        }
+
+        // Check if state is explicitly updated in action steps
+        if (actionSteps != null) {
+            for (ActionStep actionStep : actionSteps) {
+                if ("update".equals(actionStep.getType()) &&
+                        "this".equals(actionStep.getTarget()) &&
+                        "Status".equals(actionStep.getAttribute()) &&
+                        currentClass != null &&
+                        currentClass.getStateMachine() != null) {
+                    stateUpdated = true;
+                    break;
+                }
+            }
+        }
+
         // Generate action steps
-        if (operation.getActions() != null) {
-            for (ActionStep actionStep : operation.getActions()) {
+        if (actionSteps != null) {
+            for (ActionStep actionStep : actionSteps) {
                 generateActionStep(actionStep, operation, content, transition);
             }
         }
 
-        content.append("      this.state = '").append(transition.getToState()).append("';\n");
+        // Only add automatic state update if not already updated by action steps
+        if (!stateUpdated) {
+            content.append("      this.state = '").append(transition.getToState()).append("';\n");
+        }
         content.append("      return true;\n");
         content.append("    }\n");
         content.append("    return false;\n");
@@ -489,21 +531,31 @@ public class TypeScriptGenerator {
                     String attrName = TypeScriptUtils.toCamelCase(actionStep.getAttribute());
                     String value = actionStep.getValue();
 
+                    // Check if this is a state machine update (Status attribute in state machine
+                    // context)
+                    boolean isStateMachineUpdate = "Status".equals(actionStep.getAttribute()) &&
+                            currentClass != null &&
+                            currentClass.getStateMachine() != null;
+
                     // Check if value needs quotes (for string types)
                     if (!value.matches("\\d+") && !value.equals("true") && !value.equals("false")) {
                         value = "'" + TypeScriptUtils.escapeString(value) + "'";
                     }
 
-                    // Check if the attribute exists in the current class by looking for it in the
-                    // generated state machine
-                    boolean attributeExists = hasAttribute(actionStep.getAttribute());
-
-                    if (attributeExists) {
-                        content.append("      this.").append(attrName).append(" = ").append(value).append(";\n");
+                    // For state machine updates, update the state instead of status attribute
+                    if (isStateMachineUpdate) {
+                        content.append("      this.state = ").append(value).append(";\n");
                     } else {
-                        content.append("      // Update ").append(actionStep.getAttribute()).append(" to ")
-                                .append(actionStep.getValue()).append("\n");
-                        content.append("      // this.").append(attrName).append(" = ").append(value).append(";\n");
+                        // Check if the attribute exists in the current class
+                        boolean attributeExists = hasAttribute(actionStep.getAttribute());
+
+                        if (attributeExists) {
+                            content.append("      this.").append(attrName).append(" = ").append(value).append(";\n");
+                        } else {
+                            content.append("      // Update ").append(actionStep.getAttribute()).append(" to ")
+                                    .append(actionStep.getValue()).append("\n");
+                            content.append("      // this.").append(attrName).append(" = ").append(value).append(";\n");
+                        }
                     }
                 }
                 break;

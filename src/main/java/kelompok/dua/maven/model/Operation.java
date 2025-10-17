@@ -6,6 +6,7 @@ public class Operation {
     private String name;
     private List<Parameter> parameters;
     private List<ActionStep> actions;
+    private List<ActionStep> steps;
 
     // Constructors
     public Operation() {
@@ -42,11 +43,20 @@ public class Operation {
         this.actions = actions;
     }
 
+    public List<ActionStep> getSteps() {
+        return steps;
+    }
+
+    public void setSteps(List<ActionStep> steps) {
+        this.steps = steps;
+    }
+
     @Override
     public String toString() {
-        return String.format("Operation{name='%s', parameters=%d, actions=%d}",
+        return String.format("Operation{name='%s', parameters=%d, actions=%d, steps=%d}",
                 name,
                 parameters != null ? parameters.size() : 0,
-                actions != null ? actions.size() : 0);
+                actions != null ? actions.size() : 0,
+                steps != null ? steps.size() : 0);
     }
 }
