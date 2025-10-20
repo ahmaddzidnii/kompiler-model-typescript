@@ -12,6 +12,9 @@
 
 /output/
 
+/modelku/
+/output_modelku/
+/output_final/
 
 # Created by https://www.gitignore.io/api/git,java,maven,eclipse,windows
 

@@ -175,10 +175,31 @@ public class TypeScriptGenerator {
     }
 
     /**
+     * Check if string is already in camelCase format
+     */
+    private boolean isCamelCase(String str) {
+        if (str == null || str.isEmpty()) {
+            return false;
+        }
+
+        // First character should be lowercase
+        if (Character.isUpperCase(str.charAt(0))) {
+            return false;
+        }
+
+        // Should not contain spaces, underscores, or hyphens
+        return !str.contains(" ") && !str.contains("_") && !str.contains("-");
+    }
+
+    /**
      * Generate property untuk interface
      */
     private void generateInterfaceProperty(Attribute attr, StringBuilder content) {
-        String propName = TypeScriptUtils.toCamelCase(attr.getName());
+        // Use attribute name as-is if it's already in camelCase, otherwise convert
+        String propName = attr.getName();
+        if (!isCamelCase(propName)) {
+            propName = TypeScriptUtils.toCamelCase(propName);
+        }
         String propType = TypeScriptUtils.convertDataType(attr.getDataType());
 
         content.append("  ").append(propName);
@@ -210,7 +231,11 @@ public class TypeScriptGenerator {
      * Generate property untuk class
      */
     private void generateClassProperty(Attribute attr, StringBuilder content) {
-        String propName = TypeScriptUtils.toCamelCase(attr.getName());
+        // Use attribute name as-is if it's already in camelCase, otherwise convert
+        String propName = attr.getName();
+        if (!isCamelCase(propName)) {
+            propName = TypeScriptUtils.toCamelCase(propName);
+        }
         String propType = TypeScriptUtils.convertDataType(attr.getDataType());
 
         content.append("  ");
@@ -293,7 +318,11 @@ public class TypeScriptGenerator {
 
         for (int i = 0; i < allNamingAttrs.size(); i++) {
             Attribute attr = allNamingAttrs.get(i);
-            String propName = TypeScriptUtils.toCamelCase(attr.getName());
+            // Use attribute name as-is if it's already in camelCase, otherwise convert
+            String propName = attr.getName();
+            if (!isCamelCase(propName)) {
+                propName = TypeScriptUtils.toCamelCase(propName);
+            }
             String propType = TypeScriptUtils.convertDataType(attr.getDataType());
 
             if (i > 0)
@@ -308,7 +337,11 @@ public class TypeScriptGenerator {
             content.append("    super(");
             for (int i = 0; i < parentNamingAttrs.size(); i++) {
                 Attribute attr = parentNamingAttrs.get(i);
-                String propName = TypeScriptUtils.toCamelCase(attr.getName());
+                // Use attribute name as-is if it's already in camelCase, otherwise convert
+                String propName = attr.getName();
+                if (!isCamelCase(propName)) {
+                    propName = TypeScriptUtils.toCamelCase(propName);
+                }
                 if (i > 0)
                     content.append(", ");
                 content.append(propName);
@@ -318,7 +351,11 @@ public class TypeScriptGenerator {
 
         // Assign current class naming attributes
         for (Attribute attr : namingAttrs) {
-            String propName = TypeScriptUtils.toCamelCase(attr.getName());
+            // Use attribute name as-is if it's already in camelCase, otherwise convert
+            String propName = attr.getName();
+            if (!isCamelCase(propName)) {
+                propName = TypeScriptUtils.toCamelCase(propName);
+            }
             content.append("    this.").append(propName).append(" = ").append(propName).append(";\n");
         }
 
@@ -495,7 +532,11 @@ public class TypeScriptGenerator {
             case "update":
                 if ("this".equals(actionStep.getTarget()) && actionStep.getAttribute() != null
                         && actionStep.getValue() != null) {
-                    String attrName = TypeScriptUtils.toCamelCase(actionStep.getAttribute());
+                    // Use attribute name as-is if it's already in camelCase, otherwise convert
+                    String attrName = actionStep.getAttribute();
+                    if (!isCamelCase(attrName)) {
+                        attrName = TypeScriptUtils.toCamelCase(attrName);
+                    }
                     String value = actionStep.getValue();
 
                     // Check if this is a state machine update (Status attribute in state machine
@@ -583,9 +624,29 @@ public class TypeScriptGenerator {
 
         String result = message;
 
-        // Replace ${self.NIM} dengan ${this.nim}, ${self.NIP} dengan ${this.nip}, etc.
+        // Replace ${self.AttributeName} dengan ${this.attributeName}
+        // Get all attributes from current class
+        if (currentClass != null && currentClass.getAttributes() != null) {
+            for (Attribute attr : currentClass.getAttributes()) {
+                String originalName = attr.getName();
+                // Use attribute name as-is if it's already in camelCase, otherwise convert
+                String camelCaseName = originalName;
+                if (!isCamelCase(originalName)) {
+                    camelCaseName = TypeScriptUtils.toCamelCase(originalName);
+                }
+
+                // Replace both original format and potential variations
+                result = result.replace("${self." + originalName + "}", "${this." + camelCaseName + "}");
+                result = result.replace("${self." + TypeScriptUtils.toPascalCase(originalName) + "}",
+                        "${this." + camelCaseName + "}");
+            }
+        }
+
+        // Legacy replacements for backward compatibility
         result = result.replace("${self.NIM}", "${this.nim}");
         result = result.replace("${self.NIP}", "${this.nip}");
+        result = result.replace("${self.SessionId}", "${this.sessionId}");
+        result = result.replace("${self.UserId}", "${this.userId}");
 
         // Replace parameter variables ${paramName} dengan ${paramName}
         if (operation.getParameters() != null) {
