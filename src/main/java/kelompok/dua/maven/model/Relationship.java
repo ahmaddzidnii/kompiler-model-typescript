@@ -8,6 +8,10 @@ public class Relationship {
     private String relationshipId;
 
     private String description;
+
+    @JsonProperty("relationship_type")
+    private String relationshipType;
+
     private List<Participant> participants;
 
     @JsonProperty("association_class")
@@ -40,6 +44,14 @@ public class Relationship {
         this.description = description;
     }
 
+    public String getRelationshipType() {
+        return relationshipType;
+    }
+
+    public void setRelationshipType(String relationshipType) {
+        this.relationshipType = relationshipType;
+    }
+
     public List<Participant> getParticipants() {
         return participants;
     }
@@ -58,7 +70,7 @@ public class Relationship {
 
     @Override
     public String toString() {
-        return String.format("Relationship{relationshipId='%s', description='%s', participants=%d}",
-                relationshipId, description, participants != null ? participants.size() : 0);
+        return String.format("Relationship{relationshipId='%s', type='%s', description='%s', participants=%d}",
+                relationshipId, relationshipType, description, participants != null ? participants.size() : 0);
     }
 }
