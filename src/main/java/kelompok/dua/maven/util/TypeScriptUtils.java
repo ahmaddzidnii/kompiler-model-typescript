@@ -7,6 +7,7 @@ public class TypeScriptUtils {
 
     /**
      * Konversi tipe data dari xTUML ke TypeScript
+     * Tipe data inti: boolean, string, integer, real, date, timestamp, id
      */
     public static String convertDataType(String xtumlType) {
         if (xtumlType == null) {
@@ -14,24 +15,37 @@ public class TypeScriptUtils {
         }
 
         switch (xtumlType.toLowerCase()) {
+            // Tipe data inti
+            case "boolean":
+                return "boolean";
             case "string":
                 return "string";
             case "integer":
-            case "int":
                 return "number";
+            case "real":
+                return "number";
+            case "date":
+                return "Date";
+            case "timestamp":
+                return "Date";
+            case "id":
+                return "string"; // ID as string in TypeScript
+
+            // Alias untuk backward compatibility
+            case "int":
+                return "number"; // alias untuk integer
             case "float":
             case "double":
-                return "number";
-            case "boolean":
+                return "number"; // alias untuk real
             case "bool":
-                return "boolean";
+                return "boolean"; // alias untuk boolean
             case "uuid":
-                return "string"; // UUID as string in TypeScript
-            case "date":
+                return "string"; // alias untuk id
             case "datetime":
-                return "Date";
+                return "Date"; // alias untuk timestamp
             case "state":
                 return "string"; // State as string literal type
+
             default:
                 return "any";
         }

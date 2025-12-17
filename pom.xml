@@ -14,6 +14,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>17</maven.compiler.release>
+    <jar.name>default-app-name</jar.name>
   </properties>
 
   <dependencyManagement>
@@ -81,6 +82,7 @@
   </dependencies>
 
   <build>
+  <finalName>kompiler-typescript-kelompok-2</finalName>
     <plugins>
       <!-- Maven Shade Plugin for fat JAR -->
       <plugin>
