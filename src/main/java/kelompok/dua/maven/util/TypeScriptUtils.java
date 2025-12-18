@@ -90,6 +90,36 @@ public class TypeScriptUtils {
     }
 
     /**
+     * Konversi nama ke format kebab-case untuk nama file dan folder
+     */
+    public static String toKebabCase(String input) {
+        if (input == null || input.isEmpty()) {
+            return input;
+        }
+
+        // First, handle camelCase/PascalCase by inserting hyphens before uppercase
+        // letters
+        String result = input.replaceAll("([a-z])([A-Z])", "$1-$2");
+
+        // Handle consecutive uppercase letters (like "XMLParser" -> "XML-Parser")
+        result = result.replaceAll("([A-Z]+)([A-Z][a-z])", "$1-$2");
+
+        // Replace spaces, underscores with hyphens
+        result = result.replaceAll("[\\s_]+", "-");
+
+        // Convert to lowercase
+        result = result.toLowerCase();
+
+        // Remove multiple consecutive hyphens
+        result = result.replaceAll("-+", "-");
+
+        // Remove leading/trailing hyphens
+        result = result.replaceAll("^-+|-+$", "");
+
+        return result;
+    }
+
+    /**
      * Konversi nama interface ke format TypeScript dengan prefix 'I'
      */
     public static String toInterfaceName(String className) {
@@ -104,8 +134,8 @@ public class TypeScriptUtils {
             return "unknown";
         }
 
-        // Convert PascalCase to kebab-case
-        String result = className.replaceAll("([a-z])([A-Z])", "$1-$2").toLowerCase();
+        // Convert to kebab-case
+        String result = toKebabCase(className);
         return result + ".ts";
     }
 

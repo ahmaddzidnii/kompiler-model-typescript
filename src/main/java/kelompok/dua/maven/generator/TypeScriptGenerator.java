@@ -56,7 +56,7 @@ public class TypeScriptGenerator {
     private void generateDomain(Domain domain) throws IOException {
         logger.info("Generate domain: {}", domain.getName());
 
-        Path domainDir = outputDirectory.resolve(TypeScriptUtils.toCamelCase(domain.getName()));
+        Path domainDir = outputDirectory.resolve(TypeScriptUtils.toKebabCase(domain.getName()));
         Files.createDirectories(domainDir);
 
         // Generate classes dengan embedded interfaces
@@ -83,7 +83,8 @@ public class TypeScriptGenerator {
 
         String className = TypeScriptUtils.toPascalCase(classDef.getName());
         String interfaceName = TypeScriptUtils.toInterfaceName(classDef.getName());
-        String fileName = TypeScriptUtils.toFileName(className);
+        // Use original name for file name to preserve PascalCase structure
+        String fileName = TypeScriptUtils.toFileName(classDef.getName());
         Path filePath = domainDir.resolve(fileName);
 
         StringBuilder content = new StringBuilder();
@@ -625,6 +626,7 @@ public class TypeScriptGenerator {
         String result = message;
 
         // Replace ${self.AttributeName} dengan ${this.attributeName}
+        // Also replace self.AttributeName (without ${}) to this.attributeName
         // Get all attributes from current class
         if (currentClass != null && currentClass.getAttributes() != null) {
             for (Attribute attr : currentClass.getAttributes()) {
@@ -635,10 +637,21 @@ public class TypeScriptGenerator {
                     camelCaseName = TypeScriptUtils.toCamelCase(originalName);
                 }
 
-                // Replace both original format and potential variations
+                // Replace all variations: self.attr, self.Attr, ${self.attr}, ${self.Attr}
+                // This handles camelCase, PascalCase, and original format
                 result = result.replace("${self." + originalName + "}", "${this." + camelCaseName + "}");
                 result = result.replace("${self." + TypeScriptUtils.toPascalCase(originalName) + "}",
                         "${this." + camelCaseName + "}");
+                result = result.replace("self." + originalName, "this." + camelCaseName);
+                result = result.replace("self." + TypeScriptUtils.toPascalCase(originalName),
+                        "this." + camelCaseName);
+
+                // Also handle if originalName is camelCase but template uses PascalCase
+                if (isCamelCase(originalName)) {
+                    String pascalVersion = Character.toUpperCase(originalName.charAt(0)) + originalName.substring(1);
+                    result = result.replace("${self." + pascalVersion + "}", "${this." + camelCaseName + "}");
+                    result = result.replace("self." + pascalVersion, "this." + camelCaseName);
+                }
             }
         }
 
@@ -647,6 +660,10 @@ public class TypeScriptGenerator {
         result = result.replace("${self.NIP}", "${this.nip}");
         result = result.replace("${self.SessionId}", "${this.sessionId}");
         result = result.replace("${self.UserId}", "${this.userId}");
+        result = result.replace("self.NIM", "this.nim");
+        result = result.replace("self.NIP", "this.nip");
+        result = result.replace("self.SessionId", "this.sessionId");
+        result = result.replace("self.UserId", "this.userId");
 
         // Replace parameter variables ${paramName} dengan ${paramName}
         if (operation.getParameters() != null) {
@@ -700,7 +717,8 @@ public class TypeScriptGenerator {
         for (ClassDefinition classDef : domain.getClasses()) {
             String interfaceName = TypeScriptUtils.toInterfaceName(classDef.getName());
             String className = TypeScriptUtils.toPascalCase(classDef.getName());
-            String classFile = TypeScriptUtils.toFileName(className).replace(".ts", "");
+            // Use original name for file path to get correct kebab-case
+            String classFile = TypeScriptUtils.toFileName(classDef.getName()).replace(".ts", "");
 
             content.append("export { ").append(interfaceName).append(", ").append(className).append(" } from './")
                     .append(classFile).append("';\n");
@@ -713,7 +731,9 @@ public class TypeScriptGenerator {
                     String className = TypeScriptUtils.toPascalCase(relationship.getAssociationClass().getName());
                     String interfaceName = TypeScriptUtils
                             .toInterfaceName(relationship.getAssociationClass().getName());
-                    String classFile = TypeScriptUtils.toFileName(className).replace(".ts", "");
+                    // Use original name for file path to get correct kebab-case
+                    String classFile = TypeScriptUtils.toFileName(relationship.getAssociationClass().getName())
+                            .replace(".ts", "");
 
                     content.append("export { ").append(interfaceName).append(", ").append(className)
                             .append(" } from './").append(classFile)
@@ -740,7 +760,7 @@ public class TypeScriptGenerator {
 
         // Export all domains
         for (Domain domain : model.getDomains()) {
-            String domainName = TypeScriptUtils.toCamelCase(domain.getName());
+            String domainName = TypeScriptUtils.toKebabCase(domain.getName());
             content.append("export * from './").append(domainName).append("';\n");
         }
 
