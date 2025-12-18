@@ -59,6 +59,13 @@ public class TypeScriptUtils {
             return input;
         }
 
+        // Check if already in PascalCase (starts with uppercase and has mixed case)
+        if (Character.isUpperCase(input.charAt(0)) && !input.equals(input.toUpperCase())
+                && !input.equals(input.toLowerCase())) {
+            // Already in PascalCase or camelCase, just ensure first letter is uppercase
+            return Character.toUpperCase(input.charAt(0)) + input.substring(1);
+        }
+
         // Remove special characters and split by space, underscore, or hyphen
         String[] words = input.split("[\\s_-]+");
         StringBuilder result = new StringBuilder();
