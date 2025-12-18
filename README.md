@@ -21,12 +21,12 @@ java -jar target/kompiler-typescript-kelompok-2.jar xtuml-model.json
 # Dengan Maven (mode development)
 mvn exec:java \
   -Dexec.mainClass="kelompok.dua.maven.XtumlCompilerCli" \
-  -Dexec.args="xtuml-model.json --clean --verbose"
+  -Dexec.args="xtuml-model.json --clean --debug"
 
 # Dengan opsi lengkap
 java -jar target/kompiler-typescript-kelompok-2.jar xtuml-model.json \
   --output ./generated-ts \
-  --verbose \
+  --debug \
   --clean \
   --force
 
@@ -41,7 +41,7 @@ java -jar target/kompiler-typescript-kelompok-2.jar xtuml-model.json --no-color
 | Option       | Short | Deskripsi                                   | Default    |
 | ------------ | ----- | ------------------------------------------- | ---------- |
 | `--output`   | `-o`  | Direktori output file TypeScript            | `./output` |
-| `--verbose`  | `-v`  | Aktifkan verbose logging                    | `false`    |
+| `--debug`    |       | Aktifkan debug logging                      | `false`    |
 | `--force`    | `-f`  | Paksa overwrite jika output sudah ada       | `false`    |
 | `--clean`    |       | Bersihkan direktori output sebelum generate | `false`    |
 | `--no-color` |       | Nonaktifkan colored output (untuk CI/CD)    | `false`    |
@@ -58,7 +58,7 @@ Parameters:
 
 Options:
   -o, --output=<outputDir>   Direktori output (default: ./output)
-  -v, --verbose              Enable verbose logging
+  -v, --debug              Enable debug logging
   -f, --force                Force overwrite output directory
       --clean                Bersihkan output sebelum generate
   -h, --help                 Show help message
