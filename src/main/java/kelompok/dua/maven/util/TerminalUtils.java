@@ -41,28 +41,28 @@ public class TerminalUtils {
      * Print success message dengan green color
      */
     public static void printSuccess(String message) {
-        System.out.println(GREEN + "✅ " + message + RESET);
+        System.out.println(GREEN + "[OK] " + message + RESET);
     }
 
     /**
      * Print error message dengan red color
      */
     public static void printError(String message) {
-        System.out.println(RED + "❌ " + message + RESET);
+        System.out.println(RED + "[ERROR] " + message + RESET);
     }
 
     /**
      * Print warning message dengan yellow color
      */
     public static void printWarning(String message) {
-        System.out.println(YELLOW + "⚠️  " + message + RESET);
+        System.out.println(YELLOW + "[WARNING] " + message + RESET);
     }
 
     /**
      * Print info message dengan blue color
      */
     public static void printInfo(String message) {
-        System.out.println(BLUE + "ℹ️  " + message + RESET);
+        System.out.println(BLUE + "[INFO] " + message + RESET);
     }
 
     /**
@@ -117,11 +117,11 @@ public class TerminalUtils {
         System.out.println(BRIGHT_CYAN + """
                 ╔═══════════════════════════════════════════════════════════╗
                 ║                                                           ║
-                ║    ✨ xTUML TypeScript Compiler v1.1.0 ✨                ║
+                ║    xTUML TypeScript Compiler v1.1.0                      ║
                 ║                                                           ║
-                ║    🚀 Advanced Model-to-Code Generation                  ║
-                ║    💎 Action Language Support                            ║
-                ║    🎯 Type-Safe TypeScript Output                        ║
+                ║    Advanced Model-to-Code Generation                     ║
+                ║    Action Language Support                               ║
+                ║    Type-Safe TypeScript Output                           ║
                 ║                                                           ║
                 ╚═══════════════════════════════════════════════════════════╝
                 """ + RESET);
@@ -151,12 +151,12 @@ public class TerminalUtils {
      */
     private static String getFileIcon(String type) {
         return switch (type.toLowerCase()) {
-            case "interface" -> "🔷";
-            case "class" -> "🔶";
-            case "abstract class" -> "🔸";
-            case "association class" -> "🔗";
-            case "index" -> "📋";
-            default -> "📄";
+            case "interface" -> "[I]";
+            case "class" -> "[C]";
+            case "abstract class" -> "[A]";
+            case "association class" -> "[AC]";
+            case "index" -> "[IDX]";
+            default -> "[F]";
         };
     }
 
@@ -186,7 +186,9 @@ public class TerminalUtils {
      */
     public static void showProgress(String task, int percentage) {
         String bar = createProgressBar(percentage);
-        System.out.print("\r" + BLUE + task + ": " + bar + " " + percentage + "%" + RESET);
+        // Clear line first, then print progress
+        System.out.print("\r\033[K" + BLUE + task + ": " + bar + " " + percentage + "%" + RESET);
+        System.out.flush();
         if (percentage >= 100) {
             System.out.println(); // New line when complete
         }
@@ -203,7 +205,7 @@ public class TerminalUtils {
                 centerText(title + " " + version, 58) +
                 BRIGHT_CYAN + "║" + RESET);
         System.out.println(BRIGHT_CYAN + "║" + RESET +
-                centerText("Professional xTUML Model Compiler", 58) +
+                centerText("xTUML Model Compiler", 58) +
                 BRIGHT_CYAN + "║" + RESET);
         System.out.println(BRIGHT_CYAN + border + RESET);
         System.out.println();

@@ -7,6 +7,7 @@ import kelompok.dua.maven.parser.XtumlParseException;
 import kelompok.dua.maven.util.TerminalUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ch.qos.logback.classic.Level;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -34,8 +35,8 @@ public class XtumlCompilerCli implements Callable<Integer> {
             "--output" }, description = "Direktori output untuk file TypeScript yang dihasilkan (default: ./output)", defaultValue = "./output")
     private String outputDir;
 
-    @Option(names = { "-v", "--verbose" }, description = "Enable verbose logging")
-    private boolean verbose;
+    @Option(names = { "-d", "--debug" }, description = "Enable debug logging")
+    private boolean debug;
 
     @Option(names = { "-f", "--force" }, description = "Force overwrite jika direktori output sudah ada")
     private boolean force;
@@ -47,7 +48,10 @@ public class XtumlCompilerCli implements Callable<Integer> {
     private boolean noColor;
 
     public static void main(String[] args) {
-        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "INFO");
+        // Set root logger to OFF by default
+        ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory
+                .getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+        rootLogger.setLevel(Level.OFF);
 
         int exitCode = new CommandLine(new XtumlCompilerCli()).execute(args);
         System.exit(exitCode);
@@ -67,17 +71,19 @@ public class XtumlCompilerCli implements Callable<Integer> {
             TerminalUtils.printBanner("xTUML TypeScript Compiler", "v1.1.0");
 
             // Setup logging level
-            if (verbose) {
-                System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "DEBUG");
-                TerminalUtils.printInfo("Verbose mode enabled");
+            if (debug) {
+                ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory
+                        .getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+                rootLogger.setLevel(Level.DEBUG);
+                TerminalUtils.printInfo("Debug mode enabled");
             }
 
-            TerminalUtils.printInfo("📥 Input: " + inputFile);
-            TerminalUtils.printInfo("📤 Output: " + outputDir);
+            TerminalUtils.printInfo("Input: " + inputFile);
+            TerminalUtils.printInfo("Output: " + outputDir);
             TerminalUtils.printSeparator();
 
             // Validasi input file
-            TerminalUtils.printInfo("🔍 Validating input file...");
+            TerminalUtils.printInfo("Validating input file...");
             Path inputPath = Paths.get(inputFile);
             if (!Files.exists(inputPath)) {
                 TerminalUtils.printError("File input tidak ditemukan: " + inputFile);
@@ -88,10 +94,10 @@ public class XtumlCompilerCli implements Callable<Integer> {
                 TerminalUtils.printError("Path input bukan file: " + inputFile);
                 return 1;
             }
-            TerminalUtils.printSuccess("✓ Input file validated");
+            TerminalUtils.printSuccess("Input file validated");
 
             // Setup output directory
-            TerminalUtils.printInfo("📁 Setting up output directory...");
+            TerminalUtils.printInfo("Setting up output directory...");
             Path outputPath = Paths.get(outputDir);
             if (Files.exists(outputPath)) {
                 if (!Files.isDirectory(outputPath)) {
@@ -99,40 +105,34 @@ public class XtumlCompilerCli implements Callable<Integer> {
                     return 1;
                 }
 
-                if (!force && hasFiles(outputPath)) {
-                    TerminalUtils
-                            .printError("Direktori output tidak kosong. Gunakan --force untuk overwrite: " + outputDir);
-                    return 1;
-                }
-
-                if (clean) {
-                    TerminalUtils.printWarning("🧹 Cleaning output directory...");
+                if (hasFiles(outputPath)) {
+                    TerminalUtils.printWarning("Cleaning output directory...");
                     deleteDirectoryContents(outputPath);
-                    TerminalUtils.printSuccess("✓ Output directory cleaned");
+                    TerminalUtils.printSuccess("Output directory cleaned");
                 }
             }
-            TerminalUtils.printSuccess("✓ Output directory ready");
+            TerminalUtils.printSuccess("Output directory ready");
 
             // Parse model
-            TerminalUtils.printInfo("📋 Parsing xTUML model...");
+            TerminalUtils.printInfo("Parsing xTUML model...");
             TerminalUtils.showProgress("Parsing", 0);
 
             XtumlModelParser parser = new XtumlModelParser();
             XtumlModel model = parser.parseFromFile(inputPath);
 
             TerminalUtils.showProgress("Parsing", 100);
-            TerminalUtils.printSuccess("✓ Model successfully parsed");
+            TerminalUtils.printSuccess("Model successfully parsed");
             TerminalUtils.printInfo("  System: " + model.getSystemName() + " v" + model.getVersion());
             TerminalUtils.printInfo("  Domains: " + model.getDomains().size());
 
             // Generate TypeScript
             TerminalUtils.printSeparator();
-            TerminalUtils.printInfo("⚙️ Generating TypeScript files...");
+            TerminalUtils.printInfo("Generating TypeScript files...");
 
             TypeScriptGenerator generator = new TypeScriptGenerator(model, outputPath);
             generator.generateAll();
 
-            TerminalUtils.printSuccess("✓ TypeScript generation completed!");
+            TerminalUtils.printSuccess("TypeScript generation completed!");
 
             // Calculate execution time
             Duration duration = Duration.between(startTime, Instant.now());
@@ -144,21 +144,21 @@ public class XtumlCompilerCli implements Callable<Integer> {
 
         } catch (XtumlParseException e) {
             TerminalUtils.printError("❌ Parse Error: " + e.getMessage());
-            if (verbose && e.getCause() != null) {
+            if (debug && e.getCause() != null) {
                 TerminalUtils.printError("Cause: " + e.getCause().getMessage());
             }
             return 2;
 
         } catch (IOException e) {
             TerminalUtils.printError("❌ I/O Error: " + e.getMessage());
-            if (verbose) {
+            if (debug) {
                 TerminalUtils.printError("Details: " + e.toString());
             }
             return 3;
 
         } catch (Exception e) {
             TerminalUtils.printError("❌ Unexpected Error: " + e.getMessage());
-            if (verbose) {
+            if (debug) {
                 TerminalUtils.printError("Details: " + e.toString());
             }
             return 4;
@@ -196,7 +196,7 @@ public class XtumlCompilerCli implements Callable<Integer> {
         TerminalUtils.printHeader("COMPILATION SUMMARY");
 
         // System info
-        TerminalUtils.printInfo("🎯 System: " + model.getSystemName() + " v" + model.getVersion());
+        TerminalUtils.printInfo("System: " + model.getSystemName() + " v" + model.getVersion());
 
         int totalClasses = 0;
         int totalRelationships = 0;
@@ -213,7 +213,7 @@ public class XtumlCompilerCli implements Callable<Integer> {
             totalRelationships += relCount;
             totalStateMachines += smCount;
 
-            TerminalUtils.printInfo("📂 Domain '" + domain.getName() + "': " +
+            TerminalUtils.printInfo("Domain '" + domain.getName() + "': " +
                     classCount + " classes, " +
                     relCount + " relationships, " +
                     smCount + " state machines");
@@ -226,18 +226,18 @@ public class XtumlCompilerCli implements Callable<Integer> {
                 .count();
 
         TerminalUtils.printSeparator();
-        TerminalUtils.printSuccess("✅ GENERATION COMPLETE");
-        TerminalUtils.printInfo("📊 Total Statistics:");
-        TerminalUtils.printInfo("   • Domains: " + model.getDomains().size());
-        TerminalUtils.printInfo("   • Classes: " + totalClasses);
-        TerminalUtils.printInfo("   • Relationships: " + totalRelationships);
-        TerminalUtils.printInfo("   • State Machines: " + totalStateMachines);
-        TerminalUtils.printInfo("   • Generated Files: " + fileCount);
-        TerminalUtils.printInfo("⏱️ Execution Time: " + formatDuration(duration));
-        TerminalUtils.printInfo("📍 Output Location: " + outputPath.toAbsolutePath());
+        TerminalUtils.printSuccess("GENERATION COMPLETE");
+        TerminalUtils.printInfo("Total Statistics:");
+        TerminalUtils.printInfo("   - Domains: " + model.getDomains().size());
+        TerminalUtils.printInfo("   - Classes: " + totalClasses);
+        TerminalUtils.printInfo("   - Relationships: " + totalRelationships);
+        TerminalUtils.printInfo("   - State Machines: " + totalStateMachines);
+        TerminalUtils.printInfo("   - Generated Files: " + fileCount);
+        TerminalUtils.printInfo("Execution Time: " + formatDuration(duration));
+        TerminalUtils.printInfo("Output Location: " + outputPath.toAbsolutePath());
 
         TerminalUtils.printSeparator();
-        TerminalUtils.printSuccess("🎉 Ready to use! Import your TypeScript modules from the output directory.");
+        TerminalUtils.printSuccess("Ready to use! Import your TypeScript modules from the output directory.");
     }
 
     /**
