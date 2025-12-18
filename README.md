@@ -1,10 +1,69 @@
 # xTUML TypeScript Compiler v1.1.0
 
-Kompiler **CLI** untuk mengonversi model **xTUML** dari format **JSON** menjadi kode **TypeScript** secara otomatis, type-safe, dan siap produksi.
+Kompiler berbasis Command Line Interface (CLI) yang berfungsi untuk mengonversi model xTUML dari representasi JSON menjadi kode TypeScript secara otomatis, dengan jaminan keamanan tipe (type safety) serta keluaran kode yang siap digunakan dalam pengembangan perangkat lunak.
 
 ---
 
-## 🚀 Quick Start
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+  - [Tutorial Instalasi](#-tutorial-instalasi)
+  - [Verifikasi Instalasi](#verifikasi-instalasi)
+- [Quick Start](#quick-start)
+  - [1. Build Project](#1-build-project)
+  - [2. Menjalankan Kompiler](#2-menjalankan-kompiler)
+- [CLI Options](#cli-options)
+  - [CLI Usage](#cli-usage)
+- [Contoh Model Input (JSON)](#contoh-model-input-json)
+- [Struktur Model JSON](#struktur-model-json)
+  - [Domain](#domain)
+  - [Class Definition](#class-definition)
+  - [Attribute](#attribute)
+- [State Machine & Action Language](#state-machine--action-language)
+  - [Definisi State Machine](#definisi-state-machine)
+  - [Operation Definition](#operation-definition)
+  - [Action Steps](#action-steps)
+- [Relationship](#relationship)
+- [Example Output Structure](#example-output-structure)
+- [Beautiful CLI Output](#beautiful-cli-output)
+- [Development](#development)
+  - [Build & Test](#build--test)
+  - [Project Structure](#project-structure)
+
+---
+
+## Prerequisites
+
+Sebelum memulai, pastikan sistem Anda telah terinstal:
+
+- **Java 17 atau lebih tinggi**
+- **Maven 3.6 atau lebih tinggi**
+
+### 🎥 Tutorial Instalasi
+
+Untuk panduan lengkap instalasi Java dan Maven, silakan tonton video tutorial berikut:
+
+**[Tutorial Instalasi Java](https://youtu.be/jiUxHm9l1KY?si=WUwVFai5gBDDHUOQ)**
+<br/>
+**[Tutorial Instalasi Maven](https://youtu.be/VYA7NzIZFdg?si=rkO0ZjgbgFUFGhyo)**
+
+### Verifikasi Instalasi
+
+Setelah instalasi selesai, verifikasi dengan menjalankan perintah berikut di terminal:
+
+```bash
+# Cek versi Java
+java -version
+# Output yang diharapkan: java version "17.x.x" atau lebih tinggi
+
+# Cek versi Maven
+mvn -version
+# Output yang diharapkan: Apache Maven 3.6.x atau lebih tinggi
+```
+
+---
+
+## Quick Start
 
 ### 1. Build Project
 
@@ -36,7 +95,7 @@ java -jar target/kompiler-typescript-kelompok-2.jar xtuml-model.json --no-color
 
 ---
 
-## 🧰 CLI Options
+## CLI Options
 
 | Option       | Short | Deskripsi                                   | Default    |
 | ------------ | ----- | ------------------------------------------- | ---------- |
@@ -67,7 +126,7 @@ Options:
 
 ---
 
-## 📘 Contoh Model Input (JSON)
+## Contoh Model Input (JSON)
 
 ```json
 {
@@ -132,7 +191,7 @@ Options:
 
 ---
 
-## 🧩 Struktur Model JSON
+## Struktur Model JSON
 
 ### Domain
 
@@ -185,7 +244,7 @@ Options:
 
 ---
 
-## 🔄 State Machine & Action Language
+## State Machine & Action Language
 
 ### Definisi State Machine
 
@@ -236,7 +295,7 @@ Options:
 
 ---
 
-## 🔗 Relationship
+## Relationship
 
 ```json
 {
@@ -259,7 +318,7 @@ Options:
 
 ---
 
-## 🗂️ Example Output Structure
+## Example Output Structure
 
 ```text
 output/
@@ -282,12 +341,12 @@ output/
 
 ---
 
-## 🎨 Beautiful CLI Output (Contoh)
+## Beautiful CLI Output
 
 ```text
 ════════════════════════════════════════════════════════════
 ║             xTUML TypeScript Compiler v1.1.0             ║
-║            Professional xTUML Model Compiler             ║
+║                    xTUML Model Compiler                  ║
 ════════════════════════════════════════════════════════════
 
 ℹ️  Input  : xtuml-model.json
@@ -307,19 +366,28 @@ output/
 
 ---
 
-## 🛠️ Development
-
-### Prerequisites
-
-- Java 17+
-- Maven 3.6+
+## Development
 
 ### Build & Test
 
 ```bash
+# Compile project
 mvn compile
+
+# Run tests
 mvn test
+
+# Build JAR package
 mvn package
 ```
+
+### Project Structure
+
+Proyek ini menggunakan:
+
+- **Java 17+** sebagai runtime
+- **Maven** untuk build automation
+- **Picocli** untuk CLI interface
+- **Jackson** untuk JSON parsing
 
 ---
